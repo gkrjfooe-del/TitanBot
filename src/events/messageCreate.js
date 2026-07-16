@@ -20,13 +20,18 @@ import {
 } from '../services/countingGameService.js';
 
 let askGemini = null;
-try {
-  const geminiModule = await import('../ai/gemini.js');
-  askGemini = geminiModule.askGemini;
-  logger.info('Gemini AI module loaded successfully');
-} catch (e) {
-  logger.error('Gemini AI module FAILED to load:', e.message);
-  logger.error('Error stack:', e.stack);
+let geminiLoaded = false;
+
+async function loadGemini() {
+  if (geminiLoaded) return;
+  geminiLoaded = true;
+  try {
+    const geminiModule = await import('../ai/gemini.js');
+    askGemini = geminiModule.askGemini;
+    logger.info('[Gemini] Module loaded successfully');
+  } catch (e) {
+    logger.error('[Gemini] Module FAILED to load:', e.message);
+  }
 }
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
@@ -276,10 +281,10 @@ async function handleDM(message, client) {
     
     if (!content) return;
 
-    // Show typing indicator
     await message.channel.sendTyping();
 
-    // Check if Gemini AI is available
+    await loadGemini();
+
     if (!askGemini) {
       logger.warn('[DM] askGemini is null - AI not available');
       await message.reply('AI is not available. Please use slash commands in the server.');
@@ -288,12 +293,10 @@ async function handleDM(message, client) {
 
     logger.info('[DM] Calling Gemini AI...');
     
-    // Get AI response from Gemini
     const response = await askGemini(content, message.author.username);
     
     logger.info(`[DM] Gemini response: ${response.substring(0, 100)}...`);
     
-    // Send response
     await message.reply(response);
     
     logger.info(`[DM] Response sent to ${message.author.tag}`);
