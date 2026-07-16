@@ -18,7 +18,14 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
-import { askGemini } from '../ai/gemini.js';
+
+let askGemini = null;
+try {
+  const geminiModule = await import('../ai/gemini.js');
+  askGemini = geminiModule.askGemini;
+} catch (e) {
+  logger.warn('Gemini AI module not loaded:', e.message);
+}
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -267,6 +274,12 @@ async function handleDM(message, client) {
 
     // Show typing indicator
     await message.channel.sendTyping();
+
+    // Check if Gemini AI is available
+    if (!askGemini) {
+      await message.reply('AI is not available. Please use slash commands in the server.');
+      return;
+    }
 
     // Get AI response from Gemini
     const response = await askGemini(content, message.author.username);
