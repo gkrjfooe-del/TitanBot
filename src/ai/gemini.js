@@ -1,33 +1,60 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-let ai = null;
 
-if (GEMINI_API_KEY) {
-  try {
-    const { GoogleGenAI } = await import('@google/genai');
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    console.log('[Gemini] SDK loaded successfully');
-  } catch (e) {
-    console.error('[Gemini] SDK failed to load:', e.message);
-  }
-} else {
+if (!GEMINI_API_KEY) {
   console.error('[Gemini] GEMINI_API_KEY is not set!');
 }
 
+const MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+];
+
 export async function askGemini(message, userName) {
-  if (!ai) {
-    return 'AI is not available (SDK not loaded).';
+  if (!GEMINI_API_KEY) {
+    return 'AI is not available (no API key).';
   }
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `You are a smart Discord bot assistant named Majnoun-Bot. You manage a Discord server called "Ruthless Pact". You can answer questions in Arabic and English, be helpful, friendly, and casual. If the user asks you to do something in the server (like create a channel, kick someone, etc.), respond with what command they should use. User "${userName}" says: ${message}. Respond in the same language they used. Be smart and helpful. Keep responses concise.`,
-    });
+  const prompt = `You are Majnoun-Bot, a smart Discord bot assistant managing "Ruthless Pact" server. Answer in Arabic and English. Be helpful, friendly, casual. If asked to do something server-related, suggest the slash command. User "${userName}" says: ${message}. Reply in same language. Keep concise (1-3 sentences).`;
 
-    const text = typeof response.text === 'function' ? response.text() : response.text;
-    return text || 'No response from AI.';
-  } catch (error) {
-    console.error('[Gemini] API error:', error.message);
-    return 'Sorry, AI is temporarily unavailable. Try again later.';
+  for (const model of MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 500,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(`[Gemini] ${model} failed (${response.status}):`, err.substring(0, 200));
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        console.error(`[Gemini] ${model} returned no text:`, JSON.stringify(data).substring(0, 200));
+        continue;
+      }
+
+      console.log(`[Gemini] ${model} responded successfully`);
+      return text;
+    } catch (error) {
+      console.error(`[Gemini] ${model} error:`, error.message);
+      continue;
+    }
   }
+
+  return 'Sorry, AI is temporarily unavailable. Try again later.';
 }

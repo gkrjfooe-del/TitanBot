@@ -21,6 +21,7 @@ import {
 
 let askGemini = null;
 let geminiLoaded = false;
+const processedDMs = new Set();
 
 async function loadGemini() {
   if (geminiLoaded) return;
@@ -274,6 +275,13 @@ async function handleLeveling(message, client) {
 }
 
 async function handleDM(message, client) {
+  if (processedDMs.has(message.id)) return;
+  processedDMs.add(message.id);
+  if (processedDMs.size > 100) {
+    const first = processedDMs.values().next().value;
+    processedDMs.delete(first);
+  }
+
   try {
     const content = message.content.trim();
     

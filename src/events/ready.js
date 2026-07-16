@@ -47,18 +47,7 @@ export default {
         `Level role sync: scanned ${levelRoleSummary.scannedGuilds} guilds, pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, re-awarded ${levelRoleSummary.rolesReAwarded} roles, errors ${levelRoleSummary.errors}`
       );
 
-      try {
-        const ownerId = process.env.OWNER_IDS;
-        if (ownerId) {
-          const owner = await client.users.fetch(ownerId);
-          if (owner) {
-            await owner.send('Bot is online! Send me a message and I will reply using AI.');
-            startupLog('Test DM sent to owner');
-          }
-        }
-      } catch (dmError) {
-        logger.warn('Could not send test DM to owner:', dmError.message);
-      }
+
     } catch (error) {
       logger.error("Error in ready event:", error);
     }
