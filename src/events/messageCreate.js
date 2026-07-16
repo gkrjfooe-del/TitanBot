@@ -23,8 +23,10 @@ let askGemini = null;
 try {
   const geminiModule = await import('../ai/gemini.js');
   askGemini = geminiModule.askGemini;
+  logger.info('Gemini AI module loaded successfully');
 } catch (e) {
-  logger.warn('Gemini AI module not loaded:', e.message);
+  logger.error('Gemini AI module FAILED to load:', e.message);
+  logger.error('Error stack:', e.stack);
 }
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
@@ -270,6 +272,8 @@ async function handleDM(message, client) {
   try {
     const content = message.content.trim();
     
+    logger.info(`[DM] Received from ${message.author.tag}: ${content}`);
+    
     if (!content) return;
 
     // Show typing indicator
@@ -277,19 +281,24 @@ async function handleDM(message, client) {
 
     // Check if Gemini AI is available
     if (!askGemini) {
+      logger.warn('[DM] askGemini is null - AI not available');
       await message.reply('AI is not available. Please use slash commands in the server.');
       return;
     }
 
+    logger.info('[DM] Calling Gemini AI...');
+    
     // Get AI response from Gemini
     const response = await askGemini(content, message.author.username);
+    
+    logger.info(`[DM] Gemini response: ${response.substring(0, 100)}...`);
     
     // Send response
     await message.reply(response);
     
-    logger.info(`DM from ${message.author.tag}: ${content}`);
+    logger.info(`[DM] Response sent to ${message.author.tag}`);
   } catch (error) {
-    logger.error('Error handling DM:', error);
+    logger.error('[DM] Error handling DM:', error);
     await message.reply('Sorry, I encountered an error. Please try again.').catch(() => {});
   }
 }
