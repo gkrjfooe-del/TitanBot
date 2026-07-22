@@ -5,9 +5,9 @@ if (!GEMINI_API_KEY) {
 }
 
 const MODELS = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
+  'gemini-2.5-flash',
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
 ];
 
 export async function askGemini(message, userName) {
@@ -19,11 +19,12 @@ export async function askGemini(message, userName) {
 
   for (const model of MODELS) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': GEMINI_API_KEY,
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
